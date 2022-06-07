@@ -264,154 +264,171 @@ int check_not_min1_p11(struct NNet *nnet, struct Matrix *output)
 }
 
 
-int check_functions(struct NNet *nnet, struct Interval *output)
+int check_functions(struct NNet *nnet, struct Interval *output,
+                    struct Interval *output_to_check)
 {
-
-    if (PROPERTY ==1) {
-        return check_max_constant(nnet, output);
+    // Return 1 if output is completely contained in output_to_check
+    for (int i = 0; i < nnet->outputSize; i++) {
+        if (output->upper_matrix.data[i] > output_to_check->upper_matrix.data[i] ||
+            output->lower_matrix.data[i] < output_to_check->lower_matrix.data[i])
+            return 0;
     }
+    return 1;
 
-    if (PROPERTY == 2) {
-        return check_max(nnet, output);
-    }
 
-    if (PROPERTY == 3) {
-        return check_min(nnet, output);
-    }
+    /* if (PROPERTY ==1) { */
+    /*     return check_max_constant(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 4) {
-        return check_min(nnet, output);
-    }
+    /* if (PROPERTY == 2) { */
+    /*     return check_max(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 5) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 3) { */
+    /*     return check_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 16) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 4) { */
+    /*     return check_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 26) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 5) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 7) {
-        return check_min_p7(nnet, output);
-    }
+    /* if (PROPERTY == 16) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 8) {
-        return check_not_min_p8(nnet, output);
-    }
+    /* if (PROPERTY == 26) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 9) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 7) { */
+    /*     return check_min_p7(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 10) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 8) { */
+    /*     return check_not_min_p8(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 11) {
-        return check_not_min_p11(nnet, output);
-    }
+    /* if (PROPERTY == 9) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 12) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 10) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 13) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 11) { */
+    /*     return check_not_min_p11(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 14) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 12) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 15) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 13) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    if (PROPERTY >= 100) {
-        return check_not_min(nnet, output);
-    }
+    /* if (PROPERTY == 14) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
 
-    return -1;
+    /* if (PROPERTY == 15) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
+
+    /* if (PROPERTY >= 100) { */
+    /*     return check_not_min(nnet, output); */
+    /* } */
+
+    /* return -1; */
 
 }
 
 
-int check_functions1(struct NNet *nnet, struct Matrix *output)
+int check_functions1(struct NNet *nnet, struct Matrix *output,
+                     struct Interval *output_to_check)
 {
-
-    if (PROPERTY == 1) {
-        return check_max_constant1(nnet, output);
+    // Return 1 if output is completely contained in output_to_check
+    for (int i = 0; i < nnet->outputSize; i++) {
+        if (output->data[i] > output_to_check->upper_matrix.data[i] ||
+            output->data[i] < output_to_check->lower_matrix.data[i])
+            return 0;
     }
+    return 1;
 
-    if (PROPERTY == 2) {
-        return check_max1(nnet, output);
-    }
+    /* if (PROPERTY == 1) { */
+    /*     return check_max_constant1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 3) {
-        return check_min1(nnet, output);
-    }
+    /* if (PROPERTY == 2) { */
+    /*     return check_max1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 4) {
-        return check_min1(nnet, output);
-    }
+    /* if (PROPERTY == 3) { */
+    /*     return check_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 5) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 4) { */
+    /*     return check_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 16) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 5) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 26) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 16) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 7) {
-        return check_min1_p7(nnet, output);
-    }
+    /* if (PROPERTY == 26) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 8) {
-        return check_not_min1_p8(nnet, output);
-    }
+    /* if (PROPERTY == 7) { */
+    /*     return check_min1_p7(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 9) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 8) { */
+    /*     return check_not_min1_p8(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 10) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 9) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 11) {
-        return check_not_min1_p11(nnet, output);
-    }
+    /* if (PROPERTY == 10) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 12) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 11) { */
+    /*     return check_not_min1_p11(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 13) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 12) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 14) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 13) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY == 15) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 14) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    if (PROPERTY >= 100) {
-        return check_not_min1(nnet, output);
-    }
+    /* if (PROPERTY == 15) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
 
-    return -1;
+    /* if (PROPERTY >= 100) { */
+    /*     return check_not_min1(nnet, output); */
+    /* } */
+
+    /* return -1; */
 
 }
 
@@ -424,8 +441,9 @@ int check_functions1(struct NNet *nnet, struct Matrix *output)
  * It outputs whether there is any overlap, 1 for yes and 0 for none.
  */
 int tighten_still_overlap(struct NNet *nnet,\
-                        struct Interval *input,\
-                        float smear_sum)
+                          struct Interval *input,   \
+                          struct Interval *output_to_check,  \
+                          float smear_sum)
 {
 
     float out1[nnet->outputSize];
@@ -461,7 +479,7 @@ int tighten_still_overlap(struct NNet *nnet,\
 
     }
 
-    return check_functions(nnet, &output_interval);
+    return check_functions(nnet, &output_interval, output_to_check);
 
 }
 
@@ -477,6 +495,7 @@ void *direct_run_check_thread(void *args)
     direct_run_check(actual_args->nnet,\
                     actual_args->input,\
                     actual_args->output,\
+                     actual_args->output_to_check,\
                     actual_args->grad,\
                     actual_args->depth,\
                     actual_args->feature_range,\
@@ -497,6 +516,7 @@ void *direct_run_check_thread(void *args)
 int direct_run_check(struct NNet *nnet,\
                     struct Interval *input,\
                     struct Interval *output,\
+                    struct Interval *output_to_check,\
                     struct Interval *grad,\
                     int depth, int *feature_range,\
                     int feature_range_length,\
@@ -515,7 +535,7 @@ int direct_run_check(struct NNet *nnet,\
 
     forward_prop_interval_equation_linear2(nnet, input, output, grad);
 
-    int isOverlap = check_functions(nnet, output);
+    int isOverlap = check_functions(nnet, output, output_to_check);
 
     if (NEED_PRINT) {
         pthread_mutex_lock(&lock);
@@ -584,7 +604,8 @@ int direct_run_check(struct NNet *nnet,\
     }
     
     if (isOverlap && NEED_FOR_ONE_RUN == 0) {
-       isOverlap = split_interval(nnet, input, output,\
+        isOverlap = split_interval(nnet, input, output,\
+                                   output_to_check,
                             grad, depth, feature_range,\
                             feature_range_length,\
                             split_feature);
@@ -653,7 +674,8 @@ int direct_run_check(struct NNet *nnet,\
  * If a concrete adversarial example is found,
  * global adv_found will be set to 1. 
  */
-void check_adv(struct NNet* nnet, struct Interval *input)
+void check_adv(struct NNet* nnet, struct Interval *input,
+               struct Interval *output_to_check)
 {
 
     float a[nnet->inputSize];
@@ -673,7 +695,7 @@ void check_adv(struct NNet* nnet, struct Interval *input)
     forward_prop(nnet, &adv, &output);
 
     int is_adv = 0;
-    is_adv = check_functions1(nnet, &output);
+    is_adv = check_functions1(nnet, &output, output_to_check);
 
     //printMatrix(&adv);
     //printMatrix(&output);
@@ -699,7 +721,9 @@ void check_adv(struct NNet* nnet, struct Interval *input)
  * 
  */
 int split_interval(struct NNet *nnet, struct Interval *input,\
-                struct Interval *output, struct Interval *grad,\
+                struct Interval *output,
+                struct Interval *output_to_check,
+                   struct Interval *grad,       \
                 int depth, int *feature_range,\
                 int feature_range_length, int split_feature)
 {
@@ -828,8 +852,8 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
                      input->lower_matrix.data[feature_range[split_feature]];
 
         if (feature_range_length1 == 0) {
-            check_adv(nnet, &input_interval1);
-            check_adv(nnet, &input_interval2);
+            check_adv(nnet, &input_interval1, output_to_check);
+            check_adv(nnet, &input_interval2, output_to_check);
             return 0;
         }
 
@@ -901,7 +925,7 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
         if (CHECK_ADV_MODE) {
 
             if (depth >= 25 || upper-middle <= ADV_THRESHOLD) {
-                check_adv(nnet, input);
+                check_adv(nnet, input, output_to_check);
                 return 0;
             }
 
@@ -918,7 +942,7 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
             printf("check for thershold\n");
         }
 #endif
-                check_adv(nnet, input);
+                check_adv(nnet, input, output_to_check);
             }
 
         }
@@ -939,13 +963,16 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
         struct direct_run_check_args args1 = {
                                     nnet, &input_interval1,
                                     &output_interval1, &grad_interval1,
+                                    output_to_check,
                                     depth, feature_range1,
                                     feature_range_length1, split_feature
                                 };
 
         struct direct_run_check_args args2 = {
                                     nnet, &input_interval2,
-                                    &output_interval2, &grad_interval2,
+                                    &output_interval2,
+                                    output_to_check,
+                                    &grad_interval2,
                                     depth, feature_range2,
                                     feature_range_length2, split_feature
                                 };
@@ -1037,11 +1064,13 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
 
         int isOverlap1 = direct_run_check(nnet, &input_interval1, 
                                      &output_interval1, &grad_interval1,
+                                     output_to_check,
                                      depth, feature_range1, 
                                      feature_range_length1, split_feature);
 
         int isOverlap2 = direct_run_check(nnet, &input_interval2, 
                                      &output_interval2, &grad_interval2, 
+                                     output_to_check,
                                      depth, feature_range2,
                                      feature_range_length2, split_feature);
 

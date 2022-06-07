@@ -57,18 +57,19 @@ int main( int argc, char *argv[])
     //char *FULL_NET_PATH =\
             "nnet/ACASXU_run2a_1_1_batch_2000.nnet";
     char *FULL_NET_PATH;
+    char *property_file_name = NULL;
 
     int target = 0;
 
-    if (argc > 9 || argc < 4) {
+    if (argc > 10 || argc < 5) {
         printf("please specify a network\n");
         printf("./network_test [property] [network] "
-            "[target] [print] "
+            "[target] [property_file] [print] "
             "[test for one run] [check mode]\n");
         exit(1);
     }
 
-    for (int i=1;i<argc;i++) {
+    for (int i=1; i<argc; i++) {
 
         if (i == 1) {
             PROPERTY = atoi(argv[i]); 
@@ -87,6 +88,10 @@ int main( int argc, char *argv[])
         }
 
         if (i == 4) {
+            property_file_name = argv[i];
+        }
+
+        if (i == 5) {
             NEED_PRINT = atoi(argv[i]);
             if(NEED_PRINT != 0 && NEED_PRINT!=1){
                 printf("Wrong print");
@@ -94,7 +99,7 @@ int main( int argc, char *argv[])
             }
         }
 
-        if (i == 5) {
+        if (i == 6) {
             NEED_FOR_ONE_RUN = atoi(argv[i]);
 
             if (NEED_FOR_ONE_RUN != 0 && NEED_FOR_ONE_RUN != 1) {
@@ -104,7 +109,7 @@ int main( int argc, char *argv[])
 
         }
 
-        if (i == 6) {
+        if (i == 7) {
 
             if (atoi(argv[i]) == 0) {
                 CHECK_ADV_MODE = 0;
@@ -153,7 +158,11 @@ int main( int argc, char *argv[])
         load_inputs(PROPERTY, inputSize, u, l);
 
         FILE *f;
-        f = fopen("/Users/sergiomover/works/projects/ReluVal/input.json","rb");
+        f = fopen(property_file_name, "rb");
+        if (! f) {
+            printf("Error reading file %s\n", property_file_name);
+            exit(1);
+        }
 
         load_io(f, inputSize, u, l,
                 outputSize, output_u, output_l);
@@ -170,7 +179,6 @@ int main( int argc, char *argv[])
             output_to_check_interval.lower_matrix = output_lower;
             output_to_check_interval.upper_matrix = output_upper;
         }
-        return 0;
     }
 
 
@@ -244,10 +252,11 @@ int main( int argc, char *argv[])
 
     if (CHECK_ADV_MODE) {
         printf("check mode: CHECK_ADV_MODE\n");
-        isOverlap = direct_run_check(nnet,\
-                &input_interval, &output_interval,\
-                &grad_interval, depth, feature_range,\
-                feature_range_length, split_feature);
+        isOverlap = direct_run_check(nnet,
+                                     &input_interval, &output_interval,
+                                     &output_to_check_interval,
+                                     &grad_interval, depth, feature_range,
+                                     feature_range_length, split_feature);
     
     }
     else {
@@ -257,10 +266,11 @@ int main( int argc, char *argv[])
             //forward_prop_interval_equation(nnet,\
                     &input_interval, &output_interval,\
                     &grad_interval);
-            isOverlap = direct_run_check(nnet,\
-                    &input_interval, &output_interval,\
-                    &grad_interval, depth, feature_range,\
-                    feature_range_length, split_feature);
+            isOverlap = direct_run_check(nnet,
+                                         &input_interval, &output_interval,
+                                         &output_to_check_interval,
+                                         &grad_interval, depth, feature_range,
+                                         feature_range_length, split_feature);
         }
 
     }

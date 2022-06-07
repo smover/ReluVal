@@ -67,6 +67,7 @@ struct direct_run_check_args
     struct NNet *nnet;
     struct Interval *input;
     struct Interval *output;
+    struct Interval *output_to_check;
     struct Interval *grad; 
     int depth;
     int *feature_range;
@@ -80,21 +81,24 @@ struct direct_run_check_args
  * Check the concrete adversarial examples of 
  * the middle point of given input ranges.
  */
-void check_adv(struct NNet *nnet, struct Interval *input);
+void check_adv(struct NNet *nnet, struct Interval *input,
+               struct Interval *output_to_check);
 
 
 /*
  * Check the predefined properties given 
  * approximated output ranges.
  */
-int check_functions(struct NNet *nnet, struct Interval *output);
+int check_functions(struct NNet *nnet, struct Interval *output,
+                    struct Interval *output_to_check);
 
 
 /*
  * Check the predefined properties given 
  * concrete output.
  */
-int check_functions1(struct NNet *nnet, struct Matrix *output);
+int check_functions1(struct NNet *nnet, struct Matrix *output,
+                     struct Interval *output_to_check);
 
 
 /*
@@ -108,7 +112,9 @@ void *direct_run_check_thread(void *args);
  * or terminate according to given approximated output ranges.
  */
 int direct_run_check(struct NNet *nnet, struct Interval *input,
-                     struct Interval *output, struct Interval *grad, 
+                     struct Interval *output, 
+                     struct Interval *output_to_check,
+                     struct Interval *grad, 
                      int depth, int *feature_range, int feature_range_length, 
                      int split_feature);
 
@@ -118,7 +124,9 @@ int direct_run_check(struct NNet *nnet, struct Interval *input,
  * for newly split input ranges.
  */
 int split_interval(struct NNet *nnet, struct Interval *input,
-                   struct Interval *output, struct Interval *grad, 
+                   struct Interval *output,
+                   struct Interval *output_to_check,
+                   struct Interval *grad, 
                    int depth, int *feature_range, int feature_range_length, 
                    int split_feature);
 
