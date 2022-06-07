@@ -137,5 +137,8 @@ int forward_prop_interval_equation_linear2(struct NNet *network, struct Interval
 */
 void backward_prop(struct NNet *nnet, struct Interval *grad, int R[][nnet->maxLayerSize]);
 
+int load_io(FILE* input_file,
+            int inputSize, float *inputs_u, float *inputs_l,
+            int outputSize, float *outputs_u, float *outputs_l);
 
 #endif

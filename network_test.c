@@ -144,13 +144,36 @@ int main( int argc, char *argv[])
                 1.857353,1145.000000,8.654796};
 
     struct Matrix input_t = {input_test, 1, 5};
-    float u[inputSize], l[inputSize];
-    load_inputs(PROPERTY, inputSize, u, l);
 
-    struct Matrix input_upper = {u,1,nnet->inputSize};
-    struct Matrix input_lower = {l,1,nnet->inputSize};
+    struct Interval input_interval;
+    struct Interval output_to_check_interval;
+    {
+        float u[inputSize], l[inputSize];
+        float output_u[outputSize], output_l[outputSize];
+        load_inputs(PROPERTY, inputSize, u, l);
 
-    struct Interval input_interval = {input_lower, input_upper};
+        FILE *f;
+        f = fopen("/Users/sergiomover/works/projects/ReluVal/input.json","rb");
+
+        load_io(f, inputSize, u, l,
+                outputSize, output_u, output_l);
+
+        {
+            struct Matrix input_upper = {u,1,nnet->inputSize};
+            struct Matrix input_lower = {l,1,nnet->inputSize};
+            input_interval.lower_matrix = input_lower;
+            input_interval.upper_matrix = input_upper;
+        }
+        {
+            struct Matrix output_upper = {u,1,nnet->outputSize};
+            struct Matrix output_lower = {l,1,nnet->outputSize};
+            output_to_check_interval.lower_matrix = output_lower;
+            output_to_check_interval.upper_matrix = output_upper;
+        }
+        return 0;
+    }
+
+
 
     float grad_upper[inputSize], grad_lower[inputSize];
     struct Interval grad_interval = {
@@ -182,8 +205,8 @@ int main( int argc, char *argv[])
                 PROPERTY, FULL_NET_PATH);
     printf("input ranges:\n");
 
-    printMatrix(&input_upper);
-    printMatrix(&input_lower);
+    printMatrix(&input_interval.upper_matrix);
+    printMatrix(&input_interval.lower_matrix);
 
     for (int i=0;i<inputSize;i++) {
 

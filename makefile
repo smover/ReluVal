@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-I OpenBLAS/include/ 
-LDFLAGS= -LOpenBLAS/lib -lopenblas -lpthread -lm
+CFLAGS=-I OpenBLAS/include/
+LDFLAGS= -LOpenBLAS/lib -ljson-c -lopenblas -lpthread -lm
 DEPS=matrix.h nnet.h split.h
 
 all: network_test 

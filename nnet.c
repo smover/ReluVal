@@ -11,7 +11,9 @@
 
 
 #include "nnet.h"
-
+#include <json.h>
+#include <json_util.h>
+#include <assert.h>
 
 int PROPERTY = 5;
 char *LOG_FILE = "logs/log.txt";
@@ -456,6 +458,108 @@ void load_inputs(int PROPERTY, int inputSize, float *u, float *l)
         memcpy(l, lower, sizeof(float)*inputSize);
     }
 
+}
+
+int read_array(json_object* obj, int inputSize, float *array) {
+    int i;
+    int read = 0;
+    for (i = 0; i < json_object_array_length(obj) && i < inputSize; i++) {
+        json_object *val = json_object_array_get_idx(obj, i);
+        if (json_object_get_type(val) == json_type_string) {
+            // ok, convert back to single precision
+            array[read] = atof(json_object_get_string(val));
+            read += 1;
+        }
+    }
+
+    // 0 of read same amount of elements
+    return read != inputSize;
+}
+
+int json_read_interval(json_object* obj, int inputSize, float *u, float *l) {
+    json_object* upper = NULL;
+    json_object* lower = NULL;
+
+    upper = json_object_object_get(obj, "upper");
+    lower = json_object_object_get(obj, "lower");
+    if (upper == NULL || lower == NULL) {
+        printf("No lower or upper values\n");
+        return 1;
+    }
+
+    return (read_array(upper, inputSize, u) +
+            read_array(lower, inputSize, l));
+}
+
+json_object* json_read_obj_from_file(FILE* input_file) {
+    json_object *obj = NULL;
+
+    char *json_data;
+    long buffer_length;
+    assert(input_file);
+
+    fseek(input_file, 0, SEEK_END);
+    buffer_length = ftell(input_file);
+    json_data = malloc(buffer_length);
+    if (json_data <= 0)
+        return 0;
+
+    fseek(input_file, 0, SEEK_SET);
+    fread(json_data, 1, buffer_length, input_file);
+
+    obj = json_tokener_parse(json_data);
+    free(json_data);
+
+    return obj;
+}
+
+/*
+ * Read the input/output intervals for a reachability analysis problem.
+ *
+ */
+int load_io(FILE* input_file,
+            int inputSize, float *inputs_u, float *inputs_l,
+            int outputSize, float *outputs_u, float *outputs_l)
+{
+    json_object *obj = json_read_obj_from_file(input_file);
+
+    if (NULL == obj) {
+        printf("Error reading the json file\n");
+        return 1;
+    } else {
+        enum json_type type;
+        json_object *inputs, *outputs;
+        inputs = NULL;
+        outputs = NULL;
+
+        inputs = json_object_object_get(obj, "inputs");
+        outputs = json_object_object_get(obj, "outputs");
+        if (inputs == NULL || json_type_object != json_object_get_type(inputs)) {
+            printf("No inputs!\n");
+            return 1;
+        }
+
+        if (outputs == NULL  || json_type_object != json_object_get_type(inputs)) {
+            printf("No outputs!\n");
+            return 1;
+        }
+
+        if (json_read_interval(inputs,
+                               inputSize, inputs_u, inputs_l)) {
+            printf("Error reading inputs\n");
+            return 1;
+        }
+
+        if (json_read_interval(outputs,
+                               outputSize, outputs_u, outputs_l)) {
+            printf("Error reading outputs\n");
+            return 1;
+        }
+
+
+        free(obj);
+        return 0;
+    }
 }
 
 
