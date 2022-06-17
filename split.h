@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <json.h>
+#include <json_util.h>
 #include "nnet.h"
 
 #ifndef SPLIT_H
@@ -73,6 +75,10 @@ struct direct_run_check_args
     int *feature_range;
     int feature_range_length;
     int split_feature;
+    json_object *reach_lower;
+    json_object *reach_upper;
+    json_object *no_reach_lower;
+    json_object *no_reach_upper; 
     //int avg_depth;
 };
 
@@ -116,7 +122,9 @@ int direct_run_check(struct NNet *nnet, struct Interval *input,
                      struct Interval *output_to_check,
                      struct Interval *grad, 
                      int depth, int *feature_range, int feature_range_length, 
-                     int split_feature);
+                     int split_feature,
+                     json_object *reach_lower,  json_object *reach_upper,
+                     json_object *no_reach_lower,  json_object *no_reach_upper);
 
 
 /*
@@ -128,7 +136,9 @@ int split_interval(struct NNet *nnet, struct Interval *input,
                    struct Interval *output_to_check,
                    struct Interval *grad, 
                    int depth, int *feature_range, int feature_range_length, 
-                   int split_feature);
+                   int split_feature,
+                   json_object *reach_lower,  json_object *reach_upper,
+                   json_object *no_reach_lower,  json_object *no_reach_upper);
 
 
 #endif

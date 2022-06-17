@@ -20,7 +20,7 @@ char *LOG_FILE = "logs/log.txt";
 FILE *fp;
 
 /*
- * Load_network is a function modified from Reluplex
+ * Load_network is a function modified fr8om Reluplex
  * It takes in a nnet filename with path and load the 
  * network from the file
  * Outputs the NNet instance of loaded network.
@@ -303,7 +303,7 @@ void destroy_network(struct NNet *nnet)
  */
 void load_inputs(int PROPERTY, int inputSize, float *u, float *l)
 {
-
+   
     if (PROPERTY == 1) {
         float upper[] = {60760,3.141592,3.141592,1200,60};
         float lower[] = {55947.691,-3.141592,-3.141592,1145,0};
@@ -507,6 +507,8 @@ json_object* json_read_obj_from_file(FILE* input_file) {
     fseek(input_file, 0, SEEK_SET);
     fread(json_data, 1, buffer_length, input_file);
 
+    printf("Input property %s\n", json_data);
+
     obj = json_tokener_parse(json_data);
     free(json_data);
 
@@ -555,7 +557,6 @@ int load_io(FILE* input_file,
             printf("Error reading outputs\n");
             return 1;
         }
-
 
         free(obj);
         return 0;

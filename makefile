@@ -1,10 +1,10 @@
 CC=gcc
-CFLAGS=-I OpenBLAS/include/
-LDFLAGS= -LOpenBLAS/lib -ljson-c -lopenblas -lpthread -lm
+CFLAGS=-I OpenBLAS/include/ -I json-c/include/json-c
+LDFLAGS= -LOpenBLAS/lib -Ljson-c/lib -ljson-c -lopenblas -lpthread -lm
 DEPS=matrix.h nnet.h split.h
 
 all: network_test 
-all: CFLAGS += -O3
+all: CFLAGS += -O3 
 all: LDFLAGS += -O3
 
 debug: network_test

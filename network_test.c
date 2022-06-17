@@ -35,6 +35,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <json.h>
+#include <json_util.h>
 #include "split.h"
 
 //extern int thread_tot_cnt;
@@ -152,37 +154,44 @@ int main( int argc, char *argv[])
 
     struct Interval input_interval;
     struct Interval output_to_check_interval;
-    {
-        float u[inputSize], l[inputSize];
-        float output_u[outputSize], output_l[outputSize];
-        load_inputs(PROPERTY, inputSize, u, l);
+    
+    float u[inputSize], l[inputSize];
+    float output_u[outputSize], output_l[outputSize];
+    //load_inputs(PROPERTY, inputSize, u, l);
 
-        FILE *f;
-        f = fopen(property_file_name, "rb");
-        if (! f) {
-            printf("Error reading file %s\n", property_file_name);
-            exit(1);
-        }
-
-        load_io(f, inputSize, u, l,
-                outputSize, output_u, output_l);
-
-        {
-            struct Matrix input_upper = {u,1,nnet->inputSize};
-            struct Matrix input_lower = {l,1,nnet->inputSize};
-            input_interval.lower_matrix = input_lower;
-            input_interval.upper_matrix = input_upper;
-        }
-        {
-            struct Matrix output_upper = {u,1,nnet->outputSize};
-            struct Matrix output_lower = {l,1,nnet->outputSize};
-            output_to_check_interval.lower_matrix = output_lower;
-            output_to_check_interval.upper_matrix = output_upper;
-        }
+    FILE *f;
+    f = fopen(property_file_name, "rb");
+    if (! f) {
+        printf("Error reading file %s\n", property_file_name);
+        exit(1);
     }
 
+    if (load_io(f, inputSize, u, l,
+                outputSize, output_u, output_l)) {
+        printf("Error reading the input properties");            
+    }
+
+    for (int i=0;i<inputSize;i++)
+        printf("%f ", u[i]);
+    printf("\n");
+    for (int i=0;i<inputSize;i++)
+        printf("%f ", l[i]);
+    printf("\n");
+    
 
 
+    struct Matrix input_upper = {u,1,nnet->inputSize};
+    struct Matrix input_lower = {l,1,nnet->inputSize};
+    
+
+    input_interval.lower_matrix = input_lower;
+    input_interval.upper_matrix = input_upper;
+
+    struct Matrix output_upper = {u,1,nnet->outputSize};
+    struct Matrix output_lower = {l,1,nnet->outputSize};
+    output_to_check_interval.lower_matrix = output_lower;
+    output_to_check_interval.upper_matrix = output_upper;
+     
     float grad_upper[inputSize], grad_lower[inputSize];
     struct Interval grad_interval = {
                 (struct Matrix){grad_upper, 1, inputSize},
@@ -249,6 +258,57 @@ int main( int argc, char *argv[])
     gettimeofday(&start, NULL);
     int isOverlap = 0;
     float avg[100] = {0};
+    
+    // Create json file for storing splits
+    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/coleslaw_PhD/Goal Abstracted HRL/Continuous Maze/splits.json";
+    json_object * jobj = json_object_new_object();
+
+    json_object * reach = json_object_new_object();
+    json_object *reach_lower = json_object_new_array();
+    json_object *reach_upper = json_object_new_array();
+    
+    json_object * no_reach = json_object_new_object();
+    json_object *no_reach_lower = json_object_new_array();
+    json_object *no_reach_upper = json_object_new_array();
+    
+    /*
+    json_object *ru = json_object_new_array();
+    json_object *rl = json_object_new_array();
+    for (i = 0; i < inputSize; i++) {
+        char val[30] = {0};
+        sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+        json_object_array_add(ru,json_object_new_string(val)); 
+        sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+        json_object_array_add(rl,json_object_new_string(val));
+
+        }
+    json_object_array_add(reach_upper,ru);
+    json_object_array_add(reach_lower,rl);
+    
+    json_object *nru = json_object_new_array();
+    json_object *nrl = json_object_new_array();
+    for (i = 0; i < inputSize; i++) {
+        char val[30] = {0};
+        sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+        json_object_array_add(nru,json_object_new_string(val)); 
+        sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+        json_object_array_add(nrl,json_object_new_string(val));
+
+        }
+    json_object_array_add(no_reach_upper,nru);
+    json_object_array_add(no_reach_lower,nrl);
+    */
+
+    /*   
+    json_object_object_add(reach,"upper", reach_upper);
+    json_object_object_add(reach,"lower", reach_lower);
+    json_object_object_add(jobj,"reach", reach);
+    json_object_object_add(no_reach,"upper", no_reach_upper);
+    json_object_object_add(no_reach,"lower", no_reach_lower);
+    json_object_object_add(jobj,"no_reach", no_reach);
+
+    printf ("The json object created: %sn",json_object_to_json_string(jobj));
+    */
 
     if (CHECK_ADV_MODE) {
         printf("check mode: CHECK_ADV_MODE\n");
@@ -256,7 +316,9 @@ int main( int argc, char *argv[])
                                      &input_interval, &output_interval,
                                      &output_to_check_interval,
                                      &grad_interval, depth, feature_range,
-                                     feature_range_length, split_feature);
+                                     feature_range_length, split_feature,
+                                     reach_lower,  reach_upper,
+                                     no_reach_lower,  no_reach_upper);
     
     }
     else {
@@ -270,9 +332,41 @@ int main( int argc, char *argv[])
                                          &input_interval, &output_interval,
                                          &output_to_check_interval,
                                          &grad_interval, depth, feature_range,
-                                         feature_range_length, split_feature);
-        }
+                                         feature_range_length, split_feature,
+                                         reach_lower,  reach_upper,
+                                         no_reach_lower,  no_reach_upper);
+            }
+        /*
+        if (isOverlap) {
+            json_object *nru = json_object_new_array();
+            json_object *nrl = json_object_new_array();
+            for (i = 0; i < inputSize; i++) {
+                char val[30] = {0};
+                sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+                json_object_array_add(nru,json_object_new_string(val)); 
+                sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+                json_object_array_add(nrl,json_object_new_string(val));
 
+                }
+            json_object_array_add(no_reach_upper,nru);
+            json_object_array_add(no_reach_lower,nrl);
+
+        }
+        else {
+            json_object *ru = json_object_new_array();
+            json_object *rl = json_object_new_array();
+            for (i = 0; i < inputSize; i++) {
+                char val[30] = {0};
+                sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+                json_object_array_add(ru,json_object_new_string(val)); 
+                sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+                json_object_array_add(rl,json_object_new_string(val));
+
+                }
+            json_object_array_add(reach_upper,ru);
+            json_object_array_add(reach_lower,rl);
+        }
+        */
     }
     
     gettimeofday(&finish, NULL);
@@ -286,6 +380,19 @@ int main( int argc, char *argv[])
 
     
     printf("time: %f \n\n\n", time_spent);
+
+    json_object_object_add(reach,"upper", reach_upper);
+    json_object_object_add(reach,"lower", reach_lower);
+    json_object_object_add(jobj,"reach", reach);
+    json_object_object_add(no_reach,"upper", no_reach_upper);
+    json_object_object_add(no_reach,"lower", no_reach_lower);
+    json_object_object_add(jobj,"no_reach", no_reach);
+
+    //printf ("The json object created: %sn",json_object_to_json_string(jobj));
+    if (json_object_to_file(filename, jobj))
+      printf("Error: failed to save %s!!\n", filename);
+    else
+      printf("%s saved.\n", filename);
 
     destroy_network(nnet);
     free(feature_range);

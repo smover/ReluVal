@@ -10,6 +10,9 @@
  */
 
 #include "split.h"
+#include <json.h>
+#include <json_util.h>
+//#include "assert.h"
 
 #define AVG_WINDOW 5
 #define MAX_THREAD 56
@@ -266,14 +269,20 @@ int check_not_min1_p11(struct NNet *nnet, struct Matrix *output)
 
 int check_functions(struct NNet *nnet, struct Interval *output,
                     struct Interval *output_to_check)
-{
+{   
     // Return 1 if output is completely contained in output_to_check
-    for (int i = 0; i < nnet->outputSize; i++) {
-        if (output->upper_matrix.data[i] > output_to_check->upper_matrix.data[i] ||
-            output->lower_matrix.data[i] < output_to_check->lower_matrix.data[i])
-            return 0;
+    float output_upper[] = {3,3,1,1};
+    float output_lower[] = {1,0,-1,-1};
+    for (int i = 0; i < 2; i++) {
+        if (output->upper_matrix.data[i] > output_upper[i] ||
+            output->lower_matrix.data[i] < output_lower[i]){
+            /*printf("computed output upper %f \n", output->upper_matrix.data[i]);
+            printf("computed output lower %f \n", output->lower_matrix.data[i]);
+            printf("Safe output upper %f \n", output_upper[i]);
+            printf("Safe output lower %f \n", output_lower[i]);*/
+            return 1;}
     }
-    return 1;
+    return 0;
 
 
     /* if (PROPERTY ==1) { */
@@ -351,15 +360,23 @@ int check_functions(struct NNet *nnet, struct Interval *output,
 
 int check_functions1(struct NNet *nnet, struct Matrix *output,
                      struct Interval *output_to_check)
-{
-    // Return 1 if output is completely contained in output_to_check
-    for (int i = 0; i < nnet->outputSize; i++) {
-        if (output->data[i] > output_to_check->upper_matrix.data[i] ||
-            output->data[i] < output_to_check->lower_matrix.data[i])
-            return 0;
+{   
+    float output_upper[] = {3,3,1,1};
+    float output_lower[] = {1,0,-1,-1};
+    for (int i = 0; i < 2; i++) {
+        if (output->data[i] > output_upper[i] ||
+            output->data[i] < output_lower[i]){
+                return 1;
+                }
     }
-    return 1;
-
+    // Return 1 if output is completely contained in output_to_check
+    /*for (int i = 0; i < 2; i++) {
+        if (output->data[i] > output_to_check->upper_matrix.data[i] ||
+            output->data[i] < output_to_check->lower_matrix.data[i]){
+            return 1;}
+    }*/
+    return 0;
+    
     /* if (PROPERTY == 1) { */
     /*     return check_max_constant1(nnet, output); */
     /* } */
@@ -500,7 +517,11 @@ void *direct_run_check_thread(void *args)
                     actual_args->depth,\
                     actual_args->feature_range,\
                     actual_args->feature_range_length,\
-                    actual_args->split_feature);
+                    actual_args->split_feature,\
+                    actual_args->reach_lower,\
+                    actual_args->reach_upper,\
+                    actual_args->no_reach_lower,\
+                    actual_args->no_reach_lower);
 
     return NULL;
 
@@ -520,9 +541,14 @@ int direct_run_check(struct NNet *nnet,\
                     struct Interval *grad,\
                     int depth, int *feature_range,\
                     int feature_range_length,\
-                    int split_feature)
+                    int split_feature,
+                    json_object *reach_lower,  json_object *reach_upper,
+                    json_object *no_reach_lower,  json_object *no_reach_upper)
 {
 
+    //struct Interval *tmp_input = malloc(sizeof(struct Interval));
+    //*tmp_input = *input;
+    
     pthread_mutex_lock(&lock);
 
     if (adv_found) {
@@ -534,11 +560,27 @@ int direct_run_check(struct NNet *nnet,\
     pthread_mutex_unlock(&lock);
 
     forward_prop_interval_equation_linear2(nnet, input, output, grad);
-
+    
     int isOverlap = check_functions(nnet, output, output_to_check);
+    if (!isOverlap){
+        json_object *ru = json_object_new_array();
+        json_object *rl = json_object_new_array();
+        for (int i = 0; i < 4; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", input->upper_matrix.data[i]);
+            json_object_array_add(ru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", input->lower_matrix.data[i]);  
+            json_object_array_add(rl,json_object_new_string(val));
 
+            }
+            json_object_array_add(reach_upper,ru);
+            json_object_array_add(reach_lower,rl);
+    }
+
+    
     if (NEED_PRINT) {
         pthread_mutex_lock(&lock);
+
 
         printMatrix(&output->upper_matrix);
         printMatrix(&output->lower_matrix);
@@ -557,11 +599,11 @@ int direct_run_check(struct NNet *nnet,\
             printf("split_feature:%d isOverlap: False depth:%d\n", \
                         split_feature, depth);
         }
-            
+        {
         printMatrix(&input->upper_matrix);
         printMatrix(&input->lower_matrix);
         printf("\n");
-
+        }
         pthread_mutex_unlock(&lock);
 
     }
@@ -588,6 +630,7 @@ int direct_run_check(struct NNet *nnet,\
 
                 printf("] %0.2f%%\r", ((float)progress/1024)*100);
                 fflush(stdout);
+                
                 //fprintf(stderr, "smear_cnt=%d\n", smear_cnt);
             }
 
@@ -608,7 +651,9 @@ int direct_run_check(struct NNet *nnet,\
                                    output_to_check,
                             grad, depth, feature_range,\
                             feature_range_length,\
-                            split_feature);
+                            split_feature,
+                            reach_lower,  reach_upper,
+                            no_reach_lower,  no_reach_upper);
     }
     else if (!isOverlap) {
     pthread_mutex_lock(&lock);
@@ -725,7 +770,9 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
                 struct Interval *output_to_check,
                    struct Interval *grad,       \
                 int depth, int *feature_range,\
-                int feature_range_length, int split_feature)
+                int feature_range_length, int split_feature,
+                json_object *reach_lower,  json_object *reach_upper,
+                json_object *no_reach_lower,  json_object *no_reach_upper)
 {
 
     int inputSize = nnet->inputSize;
@@ -738,6 +785,18 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
     pthread_mutex_lock(&lock);
 
     if (adv_found) {
+        json_object *nru = json_object_new_array();
+        json_object *nrl = json_object_new_array();
+        for (int i = 0; i < 4; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", input->upper_matrix.data[i]);
+            json_object_array_add(nru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", input->lower_matrix.data[i]);  
+            json_object_array_add(nrl,json_object_new_string(val));
+
+            }
+        json_object_array_add(no_reach_upper,nru);
+        json_object_array_add(no_reach_lower,nrl);
 
     pthread_mutex_unlock(&lock);
 
@@ -885,6 +944,9 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
 
         }
         
+        //assert(feature_range[split_feature] > 0 &&
+        //        feature_range[split_feature] < nnet->inputSize); 
+
         float upper = input->upper_matrix.data[feature_range[split_feature]];
         float lower = input->lower_matrix.data[feature_range[split_feature]];
 
@@ -965,7 +1027,9 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
                                     &output_interval1, &grad_interval1,
                                     output_to_check,
                                     depth, feature_range1,
-                                    feature_range_length1, split_feature
+                                    feature_range_length1, split_feature,
+                                    reach_lower,  reach_upper,
+                                    no_reach_lower,  no_reach_upper
                                 };
 
         struct direct_run_check_args args2 = {
@@ -974,7 +1038,9 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
                                     output_to_check,
                                     &grad_interval2,
                                     depth, feature_range2,
-                                    feature_range_length2, split_feature
+                                    feature_range_length2, split_feature,
+                                    reach_lower,  reach_upper,
+                                    no_reach_lower,  no_reach_upper
                                 };
 
         pthread_create(&workers1, NULL, direct_run_check_thread, &args1);
@@ -1066,13 +1132,17 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
                                      &output_interval1, &grad_interval1,
                                      output_to_check,
                                      depth, feature_range1, 
-                                     feature_range_length1, split_feature);
+                                     feature_range_length1, split_feature,
+                                     reach_lower,  reach_upper,
+                                     no_reach_lower, no_reach_upper);
 
         int isOverlap2 = direct_run_check(nnet, &input_interval2, 
                                      &output_interval2, &grad_interval2, 
                                      output_to_check,
                                      depth, feature_range2,
-                                     feature_range_length2, split_feature);
+                                     feature_range_length2, split_feature,
+                                     reach_lower,  reach_upper,
+                                     no_reach_lower,  no_reach_upper);
 
         int result = isOverlap1 || isOverlap2;
 
@@ -1099,6 +1169,19 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
 
                 printf("] %0.2f%%\r", ((float)progress/1024)*100);
                 fflush(stdout);
+/*
+                json_object *ru = json_object_new_array();
+                json_object *rl = json_object_new_array();
+                for (int i = 0; i < 4; i++) {
+                    char val[30] = {0};
+                    sprintf(val, "%.5f", input->upper_matrix.data[i]);
+                    json_object_array_add(ru,json_object_new_string(val)); 
+                    sprintf(val, "%.5f", input->lower_matrix.data[i]);  
+                    json_object_array_add(rl,json_object_new_string(val));
+                    }
+                printf ("The json object created: %s\n",json_object_to_json_string(ru));
+                printf ("The json object created: %s\n",json_object_to_json_string(rl));
+*/
             }
 
             //fprintf(stderr, "smear_cnt=%d\n", smear_cnt);
