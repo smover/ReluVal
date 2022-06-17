@@ -187,8 +187,8 @@ int main( int argc, char *argv[])
     input_interval.lower_matrix = input_lower;
     input_interval.upper_matrix = input_upper;
 
-    struct Matrix output_upper = {u,1,nnet->outputSize};
-    struct Matrix output_lower = {l,1,nnet->outputSize};
+    struct Matrix output_upper = {u,nnet->outputSize,1};
+    struct Matrix output_lower = {l,nnet->outputSize,1};
     output_to_check_interval.lower_matrix = output_lower;
     output_to_check_interval.upper_matrix = output_upper;
      
@@ -310,64 +310,47 @@ int main( int argc, char *argv[])
     printf ("The json object created: %sn",json_object_to_json_string(jobj));
     */
 
-    if (CHECK_ADV_MODE) {
-        printf("check mode: CHECK_ADV_MODE\n");
-        isOverlap = direct_run_check(nnet,
-                                     &input_interval, &output_interval,
-                                     &output_to_check_interval,
-                                     &grad_interval, depth, feature_range,
-                                     feature_range_length, split_feature,
-                                     reach_lower,  reach_upper,
-                                     no_reach_lower,  no_reach_upper);
-    
+    PartitionInput partition_input = {
+        nnet,
+        &input_interval,
+        &output_to_check_interval,
+        feature_range, feature_range_length, split_feature,
+        0.9,0.1
+    };
+
+    PartitionList *partitions = compute_partitioning(&partition_input);
+
+    /*
+    if (isOverlap) {
+        json_object *nru = json_object_new_array();
+        json_object *nrl = json_object_new_array();
+        for (i = 0; i < inputSize; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+            json_object_array_add(nru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+            json_object_array_add(nrl,json_object_new_string(val));
+
+            }
+        json_object_array_add(no_reach_upper,nru);
+        json_object_array_add(no_reach_lower,nrl);
+
     }
     else {
-        printf("check mode: NORMAL_CHECK_MODE\n");
+        json_object *ru = json_object_new_array();
+        json_object *rl = json_object_new_array();
+        for (i = 0; i < inputSize; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
+            json_object_array_add(ru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
+            json_object_array_add(rl,json_object_new_string(val));
 
-        for (int i=0;i<1;i++) {
-            //forward_prop_interval_equation(nnet,\
-                    &input_interval, &output_interval,\
-                    &grad_interval);
-            isOverlap = direct_run_check(nnet,
-                                         &input_interval, &output_interval,
-                                         &output_to_check_interval,
-                                         &grad_interval, depth, feature_range,
-                                         feature_range_length, split_feature,
-                                         reach_lower,  reach_upper,
-                                         no_reach_lower,  no_reach_upper);
             }
-        /*
-        if (isOverlap) {
-            json_object *nru = json_object_new_array();
-            json_object *nrl = json_object_new_array();
-            for (i = 0; i < inputSize; i++) {
-                char val[30] = {0};
-                sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-                json_object_array_add(nru,json_object_new_string(val)); 
-                sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-                json_object_array_add(nrl,json_object_new_string(val));
-
-                }
-            json_object_array_add(no_reach_upper,nru);
-            json_object_array_add(no_reach_lower,nrl);
-
-        }
-        else {
-            json_object *ru = json_object_new_array();
-            json_object *rl = json_object_new_array();
-            for (i = 0; i < inputSize; i++) {
-                char val[30] = {0};
-                sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-                json_object_array_add(ru,json_object_new_string(val)); 
-                sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-                json_object_array_add(rl,json_object_new_string(val));
-
-                }
-            json_object_array_add(reach_upper,ru);
-            json_object_array_add(reach_lower,rl);
-        }
-        */
+        json_object_array_add(reach_upper,ru);
+        json_object_array_add(reach_lower,rl);
     }
+    */
     
     gettimeofday(&finish, NULL);
     time_spent = ((float)(finish.tv_sec - start.tv_sec) *\

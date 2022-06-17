@@ -19,6 +19,5 @@ struct Interval
 	struct Matrix upper_matrix;
 };
 
-
 #endif
 

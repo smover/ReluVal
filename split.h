@@ -82,6 +82,27 @@ struct direct_run_check_args
     //int avg_depth;
 };
 
+struct PartitionListStruct
+{
+    struct Interval* safe_partitions;
+    int safe_size;
+    struct Interval* unsafe_partitions;
+    int unsafe_size; 
+};
+typedef struct PartitionListStruct PartitionList;
+
+struct PartitionInputStruct 
+{
+    struct NNet *nnet; 
+    struct Interval *input;
+    struct Interval *output_to_check;
+    int *feature_range;
+    int feature_range_length;
+    int split_feature;
+    float safe_treshold;
+    float unsafe_treshold;
+};
+typedef struct PartitionInputStruct PartitionInput;
 
 /*
  * Check the concrete adversarial examples of 
@@ -141,4 +162,6 @@ int split_interval(struct NNet *nnet, struct Interval *input,
                    json_object *no_reach_lower,  json_object *no_reach_upper);
 
 
+
+PartitionList* compute_partitioning(PartitionInput *input);
 #endif

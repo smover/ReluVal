@@ -8,7 +8,7 @@ all: CFLAGS += -O3
 all: LDFLAGS += -O3
 
 debug: network_test
-debug: CFLAGS += -DDEBUG -g
+debug: CFLAGS += -DDEBUG -g -O0
 debug: LDFLAGS += -DDEBUG -g
 
 network_test: matrix.o nnet.o network_test.o split.o
