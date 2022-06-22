@@ -1230,13 +1230,11 @@ void compute_split_interval(struct NNet *nnet,
                             int *feature_range,
                             int feature_range_length,
                             int split_feature,
-                            struct Interval* input1,
-                            struct Interval* input2,
+                            struct Interval* input_interval1,
+                            struct Interval* input_interval2,
                             int *new_feature_range,
                             int *new_feature_range_length)
 {   
-    struct Interval* input_interval1 = copy_interval(input);
-    struct Interval* input_interval2 = copy_interval(input);
     int mono = 0;
     float smear = 0;
     float largest_smear = 0;
@@ -1259,7 +1257,7 @@ void compute_split_interval(struct NNet *nnet,
             }
         }
     }
-
+    mono = 0;
     if (mono == 0) {
         float smear = 0;
         float largest_smear = 0;
@@ -1314,10 +1312,13 @@ void compute_split_interval(struct NNet *nnet,
 }
 
 float compute_coverage(struct Interval *output,
-                       struct Interval *output_to_check)
-{
+                       struct Interval *output_to_check,
+                       struct NNet *network)
+{   
+    
     // Compute the volume of the intersection 
     double intersection_volume, volume_output;
+    float coverage = 1;
 
     assert (output->lower_matrix.col == 1 &&
         output->lower_matrix.col == output_to_check->lower_matrix.col && 
@@ -1328,17 +1329,29 @@ float compute_coverage(struct Interval *output,
     assert(output->lower_matrix.col == output->upper_matrix.col && 
            output->lower_matrix.row == output->upper_matrix.row);
 
+    
     intersection_volume = 1;
     volume_output = 1;
     for (int i = 0; i < output->lower_matrix.row; i++) {
         float new_lower = fmax(output->lower_matrix.data[i],output_to_check->lower_matrix.data[i]);
         float new_upper= fmin(output->upper_matrix.data[i],output_to_check->upper_matrix.data[i]);
-
+        float output_range = output->upper_matrix.data[i] - output->lower_matrix.data[i];
+        
         // empty intersection
-        if (new_lower > new_upper)
+        if (new_lower > new_upper){
             return 0;
-        intersection_volume = intersection_volume * (new_upper - new_lower);
-        volume_output = volume_output * (new_upper - new_lower);
+            }
+        else if (output_range > ((output_to_check->upper_matrix.data[i])/10))
+        {   
+            // printf("Output range: %f & Safe range: %f\n", output_range,((output_to_check->upper_matrix.data[i] - output_to_check->lower_matrix.data[i])/10));
+            if ((new_upper - new_lower) / output_range < coverage){
+                coverage = (new_upper - new_lower) / output_range;
+                network -> target = i;
+            }
+            intersection_volume = intersection_volume * (new_upper - new_lower);
+            volume_output = volume_output * output_range;
+
+        }
     }
 
     // Compute the ratio of the volumes
@@ -1376,7 +1389,35 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
                                            &grad);
     
     // Evaluate the coverage of input
-    coverage = compute_coverage(&output, partition_input->output_to_check);
+    coverage = compute_coverage(&output, partition_input->output_to_check, partition_input->nnet);
+    
+    if (NEED_PRINT){
+        printf("[");
+        for (int i=0;i<partition_input->feature_range_length;i++) {
+            printf("%d ", partition_input->feature_range[i]);
+        }
+        printf("] ");
+
+        if (coverage >= partition_input->safe_treshold) {
+            printf("split_feature:%d safe:%f\n", \
+                        partition_input->split_feature, coverage);
+        }
+        else if (coverage <= partition_input->unsafe_treshold) {
+            printf("split_feature:%d unsafe:%f\n", \
+                        partition_input->split_feature, coverage);
+        }
+        else {
+            printf("split_feature:%d split further:%f\n", \
+                        partition_input->split_feature, coverage);
+        }
+        {
+        printMatrix(&partition_input->input->upper_matrix);
+        printMatrix(&partition_input->input->lower_matrix);
+        printMatrix(&output.upper_matrix);
+        printMatrix(&output.lower_matrix);
+        printf("\n");
+        }
+    }
 
     if (coverage >= partition_input->safe_treshold) {
         // safe input 
@@ -1394,8 +1435,30 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         partition_list->safe_size = 0;
     } else {
         // SPLIT
-        struct Interval input1, input2;
+        //struct Interval input_interval1, input_interval2;
+        int inputSize = partition_input->nnet->inputSize;
+        float input_upper1[partition_input->nnet->inputSize];
+        float input_lower1[partition_input->nnet->inputSize]; 
+        float input_upper2[partition_input->nnet->inputSize];
+        float input_lower2[partition_input->nnet->inputSize];
 
+        memcpy(input_upper1, partition_input->input->upper_matrix.data,\
+            sizeof(float)*inputSize);
+        memcpy(input_upper2, partition_input->input->upper_matrix.data,\
+            sizeof(float)*inputSize);
+        memcpy(input_lower1, partition_input->input->lower_matrix.data,\
+            sizeof(float)*inputSize);
+        memcpy(input_lower2, partition_input->input->lower_matrix.data,\
+            sizeof(float)*inputSize);
+        
+        struct Interval input_interval1 = {
+                (struct Matrix){input_lower1, 1, partition_input->nnet->inputSize},
+                (struct Matrix){input_upper1, 1, partition_input->nnet->inputSize}
+            };
+        struct Interval input_interval2 = {
+                (struct Matrix){input_lower2, 1, partition_input->nnet->inputSize}, 
+                (struct Matrix){input_upper2, 1, partition_input->nnet->inputSize}
+            };
         // This should be created inside the compute_split_interval
         int* new_feature_range = malloc(sizeof(int) * partition_input->feature_range_length);
         int new_feature_range_length = partition_input->feature_range_length;
@@ -1407,18 +1470,24 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
                                partition_input->feature_range,
                                partition_input->feature_range_length,
                                partition_input->split_feature,
-                               &input1,
-                               &input2,
+                               &input_interval1,
+                               &input_interval2,
                                new_feature_range,
                                &new_feature_range_length);
-
+        /*printf("Input 1\n");
+        printMatrix(&input_interval1.upper_matrix);
+        printMatrix(&input_interval1.lower_matrix);
+        printf("Input 2\n");
+        printMatrix(&input_interval2.upper_matrix);
+        printMatrix(&input_interval2.lower_matrix);
+        printf("\n");*/
         // CALL RECURSIVELY
         PartitionInput partition_input_1 = {
             partition_input->nnet,
-            &input1,
+            &input_interval1,
             partition_input->output_to_check,
-            new_feature_range,
-            new_feature_range_length,
+            partition_input->feature_range,
+            partition_input->feature_range_length,
             partition_input->split_feature,
             partition_input->safe_treshold,
             partition_input->unsafe_treshold
@@ -1427,10 +1496,10 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
 
         PartitionInput partition_input_2 = {
             partition_input->nnet,
-            &input2,
+            &input_interval2,
             partition_input->output_to_check,
-            new_feature_range,
-            new_feature_range_length,
+            partition_input->feature_range,
+            partition_input->feature_range_length,
             partition_input->split_feature,
             partition_input->safe_treshold,
             partition_input->unsafe_treshold
@@ -1441,7 +1510,7 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         free(new_feature_range);
 
         // COMBINE PARTITIONS
-        partitions1->safe_partitions = realloc(partitions1->safe_partitions,
+        /*partitions1->safe_partitions = realloc(partitions1->safe_partitions,
                                                 sizeof(struct Interval*) * \
                                                 (partitions1->safe_size + partitions2->safe_size));
         memcpy(partitions1->safe_partitions + partitions1->safe_size,
@@ -1455,7 +1524,7 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
 
         free(partitions2->safe_partitions);
         free(partitions2->unsafe_partitions);
-        free(partitions2);
+        free(partitions2);*/
     }
 
     return partition_list;

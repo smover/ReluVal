@@ -541,7 +541,7 @@ int load_io(FILE* input_file,
             return 1;
         }
 
-        if (outputs == NULL  || json_type_object != json_object_get_type(inputs)) {
+        if (outputs == NULL  || json_type_object != json_object_get_type(outputs)) {
             printf("No outputs!\n");
             return 1;
         }

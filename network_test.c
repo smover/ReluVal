@@ -187,8 +187,8 @@ int main( int argc, char *argv[])
     input_interval.lower_matrix = input_lower;
     input_interval.upper_matrix = input_upper;
 
-    struct Matrix output_upper = {u,nnet->outputSize,1};
-    struct Matrix output_lower = {l,nnet->outputSize,1};
+    struct Matrix output_upper = {output_u,nnet->outputSize,1};
+    struct Matrix output_lower = {output_l,nnet->outputSize,1};
     output_to_check_interval.lower_matrix = output_lower;
     output_to_check_interval.upper_matrix = output_upper;
      
@@ -224,6 +224,11 @@ int main( int argc, char *argv[])
 
     printMatrix(&input_interval.upper_matrix);
     printMatrix(&input_interval.lower_matrix);
+    
+    printf("safe output:\n");
+
+    printMatrix(&output_to_check_interval.upper_matrix);
+    printMatrix(&output_to_check_interval.lower_matrix);
 
     for (int i=0;i<inputSize;i++) {
 
@@ -260,7 +265,7 @@ int main( int argc, char *argv[])
     float avg[100] = {0};
     
     // Create json file for storing splits
-    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/coleslaw_PhD/Goal Abstracted HRL/Continuous Maze/splits.json";
+    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/ReluVal/test/splits.json";
     json_object * jobj = json_object_new_object();
 
     json_object * reach = json_object_new_object();
@@ -315,7 +320,7 @@ int main( int argc, char *argv[])
         &input_interval,
         &output_to_check_interval,
         feature_range, feature_range_length, split_feature,
-        0.9,0.1
+        0.8,0.2
     };
 
     PartitionList *partitions = compute_partitioning(&partition_input);
