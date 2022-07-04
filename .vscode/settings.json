@@ -12,7 +12,7 @@
             ],
             "binaryArgs": [
                 "1",
-                "./test/testModel.nnet",
+                "./test/testModel2.nnet",
                 "0",
                 "./test/input.json",
                 "1"

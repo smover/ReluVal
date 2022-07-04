@@ -1,1 +1,1 @@
-{"inputs": {"lower": ["0", "0"], "upper": ["1", "1"]}, "outputs": {"lower": ["1.7", "1"], "upper": ["2", "2"]}}
+{"inputs": {"lower": ["0", "0"], "upper": ["1", "2"]}, "outputs": {"lower": ["1", "0"], "upper": ["2", "2"]}}

@@ -1207,20 +1207,26 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
     
 }
 
+
 struct Interval* copy_interval(struct Interval* src) {
     int matrix_size = src->lower_matrix.row * src->lower_matrix.col;
-    struct Interval* dst = malloc(sizeof(struct Interval*));
+    struct Interval* dst = malloc(sizeof(struct Interval));
 
     assert (src->lower_matrix.row == src->upper_matrix.row &&
             src->lower_matrix.col == src->upper_matrix.col);
 
+    dst->lower_matrix.row = src->lower_matrix.row;
+    dst->lower_matrix.col = src->lower_matrix.col;
     dst->lower_matrix.data = malloc(sizeof(float) * matrix_size);
     memcpy(dst->lower_matrix.data , src->lower_matrix.data,
            sizeof(float) * matrix_size);
-
+           
+    dst->upper_matrix.row = src->upper_matrix.row;
+    dst->upper_matrix.col = src->upper_matrix.col;
     dst->upper_matrix.data = malloc(sizeof(float) * matrix_size);
     memcpy(dst->upper_matrix.data , src->upper_matrix.data,
            sizeof(float) * matrix_size);
+
     return dst;
 }
 
@@ -1276,7 +1282,7 @@ void compute_split_interval(struct NNet *nnet,
 
             smear = e*interval_range[i];
             smear_sum += smear;
-
+            
             if (largest_smear< smear) {
                 largest_smear = smear;
                 split_feature = i;
@@ -1311,6 +1317,19 @@ void compute_split_interval(struct NNet *nnet,
     }
 }
 
+float volume_ratio(struct Interval *input,
+                   struct Interval *output_to_check)
+{
+    float ratio = 1;
+    float input_to_check_upper[] = {1,3,1,1};
+    float input_to_check_lower[] = {0,0,-1,-1};
+     for (int i = 0; i < input->lower_matrix.col; i++) {
+         ratio *= (input->upper_matrix.data[i] - input->lower_matrix.data[i])/
+                                (input_to_check_upper[i] - input_to_check_lower[i]);
+     }
+    return ratio;
+}
+
 float compute_coverage(struct Interval *output,
                        struct Interval *output_to_check,
                        struct NNet *network)
@@ -1335,6 +1354,7 @@ float compute_coverage(struct Interval *output,
     for (int i = 0; i < output->lower_matrix.row; i++) {
         float new_lower = fmax(output->lower_matrix.data[i],output_to_check->lower_matrix.data[i]);
         float new_upper= fmin(output->upper_matrix.data[i],output_to_check->upper_matrix.data[i]);
+
         float output_range = output->upper_matrix.data[i] - output->lower_matrix.data[i];
         
         // empty intersection
@@ -1350,7 +1370,6 @@ float compute_coverage(struct Interval *output,
             }
             intersection_volume = intersection_volume * (new_upper - new_lower);
             volume_output = volume_output * output_range;
-
         }
     }
 
@@ -1399,16 +1418,13 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         printf("] ");
 
         if (coverage >= partition_input->safe_treshold) {
-            printf("split_feature:%d safe:%f\n", \
-                        partition_input->split_feature, coverage);
+            printf("safe:%f\n", coverage);
         }
         else if (coverage <= partition_input->unsafe_treshold) {
-            printf("split_feature:%d unsafe:%f\n", \
-                        partition_input->split_feature, coverage);
+            printf("unsafe:%f\n", coverage);
         }
         else {
-            printf("split_feature:%d split further:%f\n", \
-                        partition_input->split_feature, coverage);
+            printf("split further:%f with volume ratio %f\n", coverage, volume_ratio(partition_input->input, partition_input->output_to_check));
         }
         {
         printMatrix(&partition_input->input->upper_matrix);
@@ -1418,7 +1434,6 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         printf("\n");
         }
     }
-
     if (coverage >= partition_input->safe_treshold) {
         // safe input 
         partition_list = malloc(sizeof(PartitionList));
@@ -1433,9 +1448,9 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         partition_list->unsafe_size = 1;
         partition_list->safe_partitions = NULL;
         partition_list->safe_size = 0;
-    } else {
+    } 
+    else if (volume_ratio(partition_input->input, partition_input->output_to_check) >= 0.1) {
         // SPLIT
-        //struct Interval input_interval1, input_interval2;
         int inputSize = partition_input->nnet->inputSize;
         float input_upper1[partition_input->nnet->inputSize];
         float input_lower1[partition_input->nnet->inputSize]; 
@@ -1474,13 +1489,7 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
                                &input_interval2,
                                new_feature_range,
                                &new_feature_range_length);
-        /*printf("Input 1\n");
-        printMatrix(&input_interval1.upper_matrix);
-        printMatrix(&input_interval1.lower_matrix);
-        printf("Input 2\n");
-        printMatrix(&input_interval2.upper_matrix);
-        printMatrix(&input_interval2.lower_matrix);
-        printf("\n");*/
+
         // CALL RECURSIVELY
         PartitionInput partition_input_1 = {
             partition_input->nnet,
@@ -1510,21 +1519,78 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         free(new_feature_range);
 
         // COMBINE PARTITIONS
-        /*partitions1->safe_partitions = realloc(partitions1->safe_partitions,
-                                                sizeof(struct Interval*) * \
-                                                (partitions1->safe_size + partitions2->safe_size));
-        memcpy(partitions1->safe_partitions + partitions1->safe_size,
-               partitions2->safe_partitions, sizeof(int) * partitions2->safe_size);
+        
+        if (partitions1 == NULL && partitions2 != NULL){
+            partition_list = partitions2;
+        }
+        else if (partitions1 != NULL && partitions2 == NULL){
+            partition_list = partitions1;
+        }
+        else {
+            if (partitions1->unsafe_size + partitions2->unsafe_size == 0){
+                partition_list = malloc(sizeof(PartitionList));
+                partition_list->safe_partitions = copy_interval(partition_input->input);
+                partition_list->safe_size = 1;
+                partition_list->unsafe_partitions = NULL;
+                partition_list->unsafe_size = 0;
+                free(partitions1->safe_partitions);
+                free(partitions1->unsafe_partitions);
+                free(partitions1);
+                free(partitions2->safe_partitions);
+                free(partitions2->unsafe_partitions);
+                free(partitions2);
+            }
+            else if (partitions1->safe_size + partitions2->safe_size == 0){
+                partition_list = malloc(sizeof(PartitionList));
+                partition_list->unsafe_partitions = copy_interval(partition_input->input);
+                partition_list->unsafe_size = 1;
+                partition_list->safe_partitions = NULL;
+                partition_list->safe_size = 0;
+                free(partitions1->safe_partitions);
+                free(partitions1->unsafe_partitions);
+                free(partitions1);
+                free(partitions2->safe_partitions);
+                free(partitions2->unsafe_partitions);
+                free(partitions2);
+            }
+            else {
+                partitions1->safe_partitions = realloc(partitions1->safe_partitions,
+                                                        sizeof(struct Interval) * \
+                                                        (partitions1->safe_size + partitions2->safe_size));
+                
+                memcpy(partitions1->safe_partitions + partitions1->safe_size,
+                    partitions2->safe_partitions, sizeof(struct Interval) * partitions2->safe_size);
+                partitions1 -> safe_size = partitions1 -> safe_size + partitions2 -> safe_size;
 
-        partitions1->unsafe_partitions = realloc(partitions1->unsafe_partitions,
-                                                sizeof(struct Interval*) * \
-                                                (partitions1->unsafe_size + partitions2->unsafe_size));
-        memcpy(partitions1->unsafe_partitions + partitions1->unsafe_size,
-               partitions2->unsafe_partitions, sizeof(int) * partitions2->unsafe_size);
-
-        free(partitions2->safe_partitions);
-        free(partitions2->unsafe_partitions);
-        free(partitions2);*/
+                partitions1->unsafe_partitions = realloc(partitions1->unsafe_partitions,
+                                                        sizeof(struct Interval) * \
+                                                        (partitions1->unsafe_size + partitions2->unsafe_size));
+                
+                memcpy(partitions1->unsafe_partitions + partitions1->unsafe_size,
+                    partitions2->unsafe_partitions, sizeof(struct Interval) * partitions2->unsafe_size);
+                partitions1 -> unsafe_size = partitions1 -> unsafe_size + partitions2 -> unsafe_size;     
+                free(partitions2->safe_partitions);
+                free(partitions2->unsafe_partitions);
+                free(partitions2);
+                partition_list = partitions1;
+            }
+        }
+    }
+    else {
+        if (coverage > 0.5) {
+            partition_list = malloc(sizeof(PartitionList));
+            partition_list->safe_partitions = copy_interval(partition_input->input);
+            partition_list->safe_size = 1;
+            partition_list->unsafe_partitions = NULL;
+            partition_list->unsafe_size = 0;
+        }
+        else {
+            partition_list = malloc(sizeof(PartitionList));
+            partition_list->unsafe_partitions = copy_interval(partition_input->input);
+            partition_list->unsafe_size = 1;
+            partition_list->safe_partitions = NULL;
+            partition_list->safe_size = 0;
+        }
     }
 
     return partition_list;

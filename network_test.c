@@ -263,100 +263,17 @@ int main( int argc, char *argv[])
     gettimeofday(&start, NULL);
     int isOverlap = 0;
     float avg[100] = {0};
-    
-    // Create json file for storing splits
-    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/ReluVal/test/splits.json";
-    json_object * jobj = json_object_new_object();
-
-    json_object * reach = json_object_new_object();
-    json_object *reach_lower = json_object_new_array();
-    json_object *reach_upper = json_object_new_array();
-    
-    json_object * no_reach = json_object_new_object();
-    json_object *no_reach_lower = json_object_new_array();
-    json_object *no_reach_upper = json_object_new_array();
-    
-    /*
-    json_object *ru = json_object_new_array();
-    json_object *rl = json_object_new_array();
-    for (i = 0; i < inputSize; i++) {
-        char val[30] = {0};
-        sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-        json_object_array_add(ru,json_object_new_string(val)); 
-        sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-        json_object_array_add(rl,json_object_new_string(val));
-
-        }
-    json_object_array_add(reach_upper,ru);
-    json_object_array_add(reach_lower,rl);
-    
-    json_object *nru = json_object_new_array();
-    json_object *nrl = json_object_new_array();
-    for (i = 0; i < inputSize; i++) {
-        char val[30] = {0};
-        sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-        json_object_array_add(nru,json_object_new_string(val)); 
-        sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-        json_object_array_add(nrl,json_object_new_string(val));
-
-        }
-    json_object_array_add(no_reach_upper,nru);
-    json_object_array_add(no_reach_lower,nrl);
-    */
-
-    /*   
-    json_object_object_add(reach,"upper", reach_upper);
-    json_object_object_add(reach,"lower", reach_lower);
-    json_object_object_add(jobj,"reach", reach);
-    json_object_object_add(no_reach,"upper", no_reach_upper);
-    json_object_object_add(no_reach,"lower", no_reach_lower);
-    json_object_object_add(jobj,"no_reach", no_reach);
-
-    printf ("The json object created: %sn",json_object_to_json_string(jobj));
-    */
-
+     
     PartitionInput partition_input = {
         nnet,
         &input_interval,
         &output_to_check_interval,
         feature_range, feature_range_length, split_feature,
-        0.8,0.2
+        0.7,0.3
     };
 
     PartitionList *partitions = compute_partitioning(&partition_input);
 
-    /*
-    if (isOverlap) {
-        json_object *nru = json_object_new_array();
-        json_object *nrl = json_object_new_array();
-        for (i = 0; i < inputSize; i++) {
-            char val[30] = {0};
-            sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-            json_object_array_add(nru,json_object_new_string(val)); 
-            sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-            json_object_array_add(nrl,json_object_new_string(val));
-
-            }
-        json_object_array_add(no_reach_upper,nru);
-        json_object_array_add(no_reach_lower,nrl);
-
-    }
-    else {
-        json_object *ru = json_object_new_array();
-        json_object *rl = json_object_new_array();
-        for (i = 0; i < inputSize; i++) {
-            char val[30] = {0};
-            sprintf(val, "%.5f", input_interval.upper_matrix.data[i]);
-            json_object_array_add(ru,json_object_new_string(val)); 
-            sprintf(val, "%.5f", input_interval.lower_matrix.data[i]);  
-            json_object_array_add(rl,json_object_new_string(val));
-
-            }
-        json_object_array_add(reach_upper,ru);
-        json_object_array_add(reach_lower,rl);
-    }
-    */
-    
     gettimeofday(&finish, NULL);
     time_spent = ((float)(finish.tv_sec - start.tv_sec) *\
             1000000 + (float)(finish.tv_usec - start.tv_usec)) /\
@@ -368,7 +285,51 @@ int main( int argc, char *argv[])
 
     
     printf("time: %f \n\n\n", time_spent);
+    
+    // Create json file for storing splits
+    
+    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/ReluVal/test/splits.json";
+    json_object * jobj = json_object_new_object();
 
+    json_object * reach = json_object_new_object();
+    json_object *reach_lower = json_object_new_array();
+    json_object *reach_upper = json_object_new_array();
+    
+    json_object * no_reach = json_object_new_object();
+    json_object *no_reach_lower = json_object_new_array();
+    json_object *no_reach_upper = json_object_new_array();
+    
+    for (int p = 0; p < partitions->safe_size; p++) {    
+        json_object *ru = json_object_new_array();
+        json_object *rl = json_object_new_array();
+        for (int i = 0; i < inputSize; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", partitions->safe_partitions[p].upper_matrix.data[i]);
+            json_object_array_add(ru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", partitions->safe_partitions[p].lower_matrix.data[i]);  
+            json_object_array_add(rl,json_object_new_string(val));
+
+            }
+        json_object_array_add(reach_upper,ru);
+        json_object_array_add(reach_lower,rl);
+        printMatrix(&partitions->safe_partitions[p].upper_matrix);
+        printMatrix(&partitions->safe_partitions[p].lower_matrix);
+    }
+    
+    for (int p = 0; p < partitions->unsafe_size; p++) {  
+        json_object *nru = json_object_new_array();
+        json_object *nrl = json_object_new_array();
+        for (i = 0; i < inputSize; i++) {
+            char val[30] = {0};
+            sprintf(val, "%.5f", partitions->unsafe_partitions[p].upper_matrix.data[i]);
+            json_object_array_add(nru,json_object_new_string(val)); 
+            sprintf(val, "%.5f", partitions->unsafe_partitions[p].lower_matrix.data[i]);  
+            json_object_array_add(nrl,json_object_new_string(val));
+            }
+        json_object_array_add(no_reach_upper,nru);
+        json_object_array_add(no_reach_lower,nrl);
+    }
+    
     json_object_object_add(reach,"upper", reach_upper);
     json_object_object_add(reach,"lower", reach_lower);
     json_object_object_add(jobj,"reach", reach);
