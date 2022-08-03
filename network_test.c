@@ -171,12 +171,12 @@ int main( int argc, char *argv[])
         printf("Error reading the input properties");            
     }
 
-    for (int i=0;i<inputSize;i++)
+    /*for (int i=0;i<inputSize;i++)
         printf("%f ", u[i]);
     printf("\n");
     for (int i=0;i<inputSize;i++)
         printf("%f ", l[i]);
-    printf("\n");
+    printf("\n");*/
     
 
 
@@ -218,6 +218,7 @@ int main( int argc, char *argv[])
     int split_feature = -1;
     int depth = 0;
 
+    /*
     printf("running property %d with network %s\n",\
                 PROPERTY, FULL_NET_PATH);
     printf("input ranges:\n");
@@ -229,6 +230,7 @@ int main( int argc, char *argv[])
 
     printMatrix(&output_to_check_interval.upper_matrix);
     printMatrix(&output_to_check_interval.lower_matrix);
+    */
 
     for (int i=0;i<inputSize;i++) {
 
@@ -256,6 +258,8 @@ int main( int argc, char *argv[])
         }
     }
 
+    struct Interval* initial_input = copy_interval(&input_interval);
+   
     //evaluate(nnet, &input_t, &output);
     //forward_prop(nnet, &input_t,&output);
     //printMatrix(&output);
@@ -269,7 +273,8 @@ int main( int argc, char *argv[])
         &input_interval,
         &output_to_check_interval,
         feature_range, feature_range_length, split_feature,
-        0.7,0.3
+        0.9,0.1,
+        initial_input
     };
 
     PartitionList *partitions = compute_partitioning(&partition_input);
@@ -279,16 +284,17 @@ int main( int argc, char *argv[])
             1000000 + (float)(finish.tv_usec - start.tv_usec)) /\
             1000000;
 
-    if (isOverlap == 0 && adv_found == 0) {
+    /*if (isOverlap == 0 && adv_found == 0) {
         printf("\nNo adv!\n");
     }
 
     
-    printf("time: %f \n\n\n", time_spent);
+    printf("time: %f \n\n\n", time_spent);*/
     
     // Create json file for storing splits
     
-    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/ReluVal/test/splits.json";
+    // const char *filename = "/Users/mehdizadem/Documents/PhD/Software/ReluVal/test/splits.json";
+    const char *filename = "/Users/mehdizadem/Documents/PhD/Software/coleslaw_PhD/Goal Abstracted HRL/Continuous Maze/splits.json";
     json_object * jobj = json_object_new_object();
 
     json_object * reach = json_object_new_object();
@@ -312,8 +318,8 @@ int main( int argc, char *argv[])
             }
         json_object_array_add(reach_upper,ru);
         json_object_array_add(reach_lower,rl);
-        printMatrix(&partitions->safe_partitions[p].upper_matrix);
-        printMatrix(&partitions->safe_partitions[p].lower_matrix);
+        //printMatrix(&partitions->safe_partitions[p].upper_matrix);
+        //printMatrix(&partitions->safe_partitions[p].lower_matrix);
     }
     
     for (int p = 0; p < partitions->unsafe_size; p++) {  
@@ -340,8 +346,8 @@ int main( int argc, char *argv[])
     //printf ("The json object created: %sn",json_object_to_json_string(jobj));
     if (json_object_to_file(filename, jobj))
       printf("Error: failed to save %s!!\n", filename);
-    else
-      printf("%s saved.\n", filename);
+    //else
+    //  printf("%s saved.\n", filename);
 
     destroy_network(nnet);
     free(feature_range);

@@ -1174,19 +1174,6 @@ int split_interval(struct NNet *nnet, struct Interval *input,\
 
                 printf("] %0.2f%%\r", ((float)progress/1024)*100);
                 fflush(stdout);
-/*
-                json_object *ru = json_object_new_array();
-                json_object *rl = json_object_new_array();
-                for (int i = 0; i < 4; i++) {
-                    char val[30] = {0};
-                    sprintf(val, "%.5f", input->upper_matrix.data[i]);
-                    json_object_array_add(ru,json_object_new_string(val)); 
-                    sprintf(val, "%.5f", input->lower_matrix.data[i]);  
-                    json_object_array_add(rl,json_object_new_string(val));
-                    }
-                printf ("The json object created: %s\n",json_object_to_json_string(ru));
-                printf ("The json object created: %s\n",json_object_to_json_string(rl));
-*/
             }
 
             //fprintf(stderr, "smear_cnt=%d\n", smear_cnt);
@@ -1318,15 +1305,14 @@ void compute_split_interval(struct NNet *nnet,
 }
 
 float volume_ratio(struct Interval *input,
-                   struct Interval *output_to_check)
+                   struct Interval *initial_input)
 {
     float ratio = 1;
-    float input_to_check_upper[] = {1,3,1,1};
-    float input_to_check_lower[] = {0,0,-1,-1};
-     for (int i = 0; i < input->lower_matrix.col; i++) {
-         ratio *= (input->upper_matrix.data[i] - input->lower_matrix.data[i])/
-                                (input_to_check_upper[i] - input_to_check_lower[i]);
-     }
+    for (int i = 0; i < input->lower_matrix.col; i++) {
+        ratio *= (input->upper_matrix.data[i] - input->lower_matrix.data[i])/
+                            (initial_input->upper_matrix.data[i] - initial_input->lower_matrix.data[i]);
+    }
+
     return ratio;
 }
 
@@ -1424,11 +1410,17 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
             printf("unsafe:%f\n", coverage);
         }
         else {
-            printf("split further:%f with volume ratio %f\n", coverage, volume_ratio(partition_input->input, partition_input->output_to_check));
+            printf("split further:%f with volume ratio %f\n", coverage, volume_ratio(partition_input->input, partition_input->initial_input));
         }
         {
+        
+        // printf("initial input\n");
+        // printMatrix(&partition_input->initial_input->upper_matrix);
+        // printMatrix(&partition_input->initial_input->lower_matrix);
+        // printf("Input\n");
         printMatrix(&partition_input->input->upper_matrix);
         printMatrix(&partition_input->input->lower_matrix);
+        // printf("Output\n");
         printMatrix(&output.upper_matrix);
         printMatrix(&output.lower_matrix);
         printf("\n");
@@ -1449,7 +1441,7 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
         partition_list->safe_partitions = NULL;
         partition_list->safe_size = 0;
     } 
-    else if (volume_ratio(partition_input->input, partition_input->output_to_check) >= 0.1) {
+    else if (volume_ratio(partition_input->input, partition_input->initial_input) >= 0.1) {
         // SPLIT
         int inputSize = partition_input->nnet->inputSize;
         float input_upper1[partition_input->nnet->inputSize];
@@ -1499,7 +1491,8 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
             partition_input->feature_range_length,
             partition_input->split_feature,
             partition_input->safe_treshold,
-            partition_input->unsafe_treshold
+            partition_input->unsafe_treshold,
+            partition_input->initial_input
         };
         PartitionList *partitions1 = compute_partitioning(&partition_input_1);
 
@@ -1511,7 +1504,8 @@ PartitionList* compute_partitioning(PartitionInput *partition_input)
             partition_input->feature_range_length,
             partition_input->split_feature,
             partition_input->safe_treshold,
-            partition_input->unsafe_treshold
+            partition_input->unsafe_treshold,
+            partition_input->initial_input
         };
         PartitionList *partitions2 = compute_partitioning(&partition_input_2);
 

@@ -101,6 +101,7 @@ struct PartitionInputStruct
     int split_feature;
     float safe_treshold;
     float unsafe_treshold;
+    struct Interval *initial_input;
 };
 typedef struct PartitionInputStruct PartitionInput;
 
@@ -163,6 +164,6 @@ int split_interval(struct NNet *nnet, struct Interval *input,
 
 
 
-
+struct Interval* copy_interval(struct Interval* src);
 PartitionList* compute_partitioning(PartitionInput *input);
 #endif

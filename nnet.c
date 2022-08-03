@@ -507,7 +507,7 @@ json_object* json_read_obj_from_file(FILE* input_file) {
     fseek(input_file, 0, SEEK_SET);
     fread(json_data, 1, buffer_length, input_file);
 
-    printf("Input property %s\n", json_data);
+    //printf("Input property %s\n", json_data);
 
     obj = json_tokener_parse(json_data);
     free(json_data);
