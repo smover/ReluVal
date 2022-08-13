@@ -1309,8 +1309,10 @@ float volume_ratio(struct Interval *input,
 {
     float ratio = 1;
     for (int i = 0; i < input->lower_matrix.col; i++) {
-        ratio *= (input->upper_matrix.data[i] - input->lower_matrix.data[i])/
+        if (initial_input->upper_matrix.data[i] - initial_input->lower_matrix.data[i] > 0){
+            ratio *= (input->upper_matrix.data[i] - input->lower_matrix.data[i])/
                             (initial_input->upper_matrix.data[i] - initial_input->lower_matrix.data[i]);
+        }
     }
 
     return ratio;

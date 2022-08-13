@@ -273,7 +273,7 @@ int main( int argc, char *argv[])
         &input_interval,
         &output_to_check_interval,
         feature_range, feature_range_length, split_feature,
-        0.9,0.1,
+        0.8,0.001,
         initial_input
     };
 
